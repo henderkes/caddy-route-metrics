@@ -1,2 +1,4 @@
-# frankenphp-metrics
-FrankenPHP Caddy + PHP extensions to expose per-route prometheus metrics
+# caddy-route-metrics
+Caddy module that exposes per-route Prometheus metrics.
+
+For configuration see Caddyfile.example

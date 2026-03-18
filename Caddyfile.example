@@ -1,0 +1,34 @@
+{
+	auto_https off
+	admin off
+}
+
+:80 {
+	# built-in defaults are:
+	#   - numeric segments      → :id    (e.g. /users/42 → /users/:id)
+	#   - UUID segments         → :uuid  (e.g. /orders/550e8400-... → /orders/:uuid)
+	#   - hex hashes (24-64ch)  → :id    (e.g. /commit/a1b2c3d4... → /commit/:id)
+	#
+	# Default duration_buckets: 5 10 25 35 50 75 100 150 250 500 1000 (ms)
+	# Default status_buckets: none (all codes grouped as 2xx/3xx/4xx/5xx).
+	#   Add specific codes to break them out: status_buckets 200 404 500
+	#
+	# route_metrics
+
+	# With braces, only paths matching at least one pattern produce metrics.
+	# Patterns are applied in sequence (pipeline), not first-match-wins.
+	route_metrics {
+		metrics_path /metrics
+		allowed_ips private_ranges
+
+		pattern "/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}" "/:uuid"
+		pattern "/(\d+)(/|$)" "/:id$2"
+		pattern "^/.*" "$0"
+
+		duration_buckets 1 5 10 25 50 100 250 1000
+		status_buckets 200 201 204 400 401 403 404 422
+	}
+
+	root /app/public
+	php_server
+}

@@ -1,0 +1,192 @@
+{
+  "uid": "caddy-route-metrics",
+  "title": "Caddy Route Metrics",
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request Rate by Route",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (route) (rate(caddy_route_requests_total[1m]))",
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Request Rate by Status Code",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (status_code) (rate(caddy_route_requests_total[1m]))",
+          "legendFormat": "{{status_code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 20, "stacking": { "mode": "normal" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byRegexp", "options": "^5" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": "^4" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": "^(2|3)" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "title": "p50 Latency by Route",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (route, le) (rate(caddy_route_request_duration_milliseconds_bucket[1m])))",
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "p95 Latency by Route",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (route, le) (rate(caddy_route_request_duration_milliseconds_bucket[1m])))",
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Requests by Route & Status",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum by (route, method, status_code) (caddy_route_requests_total)",
+          "legendFormat": "",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true }, "renameByName": { "Value": "total", "method": "Method", "route": "Route", "status_code": "Status" } } }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "total" }, "properties": [{ "id": "custom.align", "value": "right" }] }
+        ]
+      },
+      "options": {
+        "sortBy": [{ "displayName": "total", "desc": true }]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Total Requests by Route",
+      "type": "bargauge",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum by (route) (caddy_route_requests_total)",
+          "legendFormat": "{{route}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    },
+    {
+      "id": 7,
+      "title": "Error Rate by Route",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+      "targets": [
+        {
+          "expr": "sum by (route, status_code) (rate(caddy_route_errors_total[1m]))",
+          "legendFormat": "{{route}} {{status_code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Error Ratio by Route",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 26 },
+      "targets": [
+        {
+          "expr": "sum by (route) (rate(caddy_route_errors_total[1m])) / sum by (route) (rate(caddy_route_requests_total[1m]))",
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "custom": { "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Average Latency by Route",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
+      "targets": [
+        {
+          "expr": "sum by (route) (rate(caddy_route_request_duration_milliseconds_sum[1m])) / sum by (route) (rate(caddy_route_request_duration_milliseconds_count[1m]))",
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "fillOpacity": 10 }
+        }
+      }
+    }
+  ],
+  "schemaVersion": 39
+}
