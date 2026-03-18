@@ -1,0 +1,6 @@
+framework:
+    secret: 'test-secret-not-for-production'
+    http_method_override: false
+    handle_all_throwables: true
+    router:
+        utf8: true
