@@ -103,7 +103,8 @@ func (m *RouteMetrics) Provision(ctx caddy.Context) error {
 	}
 
 	var err error
-	m.metrics, err = newMetrics(prometheus.DefaultRegisterer, metricsConfig{
+	reg := prometheus.NewRegistry()
+	m.metrics, err = newMetrics(reg, metricsConfig{
 		patterns:      userPatterns,
 		useDefaults:   useDefaults,
 		maxRoutes:     m.MaxRoutes,
