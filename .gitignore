@@ -34,3 +34,6 @@ go.work.sum
 # Binaries
 frankenphp
 frankenphp.exe
+
+test-symfony/var
+test-symfony/vendor
