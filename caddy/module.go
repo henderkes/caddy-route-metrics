@@ -167,6 +167,11 @@ func (m *RouteMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request, next ca
 func (m *RouteMetrics) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	d.Next()
 
+	// Support shorthand: route_metrics /metrics
+	if d.NextArg() {
+		m.MetricsPath = d.Val()
+	}
+
 	for d.NextBlock(0) {
 		m.hasBlock = true
 		switch d.Val() {
