@@ -89,7 +89,7 @@ func (m *RouteMetrics) Provision(ctx caddy.Context) error {
 		userPatterns = append(userPatterns, rp)
 	}
 
-	useDefaults := len(userPatterns) == 0 && !m.hasBlock
+	useDefaults := len(userPatterns) == 0
 
 	durationBuckets := m.DurationBuckets
 	if len(durationBuckets) == 0 {
@@ -167,11 +167,6 @@ func (m *RouteMetrics) ServeHTTP(w http.ResponseWriter, r *http.Request, next ca
 func (m *RouteMetrics) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	d.Next()
 
-	// Support shorthand: route_metrics /metrics
-	if d.NextArg() {
-		m.MetricsPath = d.Val()
-	}
-
 	for d.NextBlock(0) {
 		m.hasBlock = true
 		switch d.Val() {
@@ -224,8 +219,63 @@ func (m *RouteMetrics) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 func parseCaddyfile(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
 	var m RouteMetrics
-	err := m.UnmarshalCaddyfile(h.Dispenser)
-	return &m, err
+
+	// Check if the next token after the directive name is a path (e.g., route_metrics /metrics).
+	// Caddy would normally treat this as a matcher, but we interpret it as metrics_path.
+	h.Next() // consume directive name
+	if h.NextArg() {
+		m.MetricsPath = h.Val()
+	}
+
+	// Parse the remaining block (if any).
+	for h.NextBlock(0) {
+		m.hasBlock = true
+		switch h.Val() {
+		case "pattern":
+			args := h.RemainingArgs()
+			if len(args) != 2 {
+				return nil, h.ArgErr()
+			}
+			m.Patterns = append(m.Patterns, PatternConfig{
+				Regex:       args[0],
+				Replacement: args[1],
+			})
+		case "duration_buckets":
+			args := h.RemainingArgs()
+			if len(args) == 0 {
+				return nil, h.ArgErr()
+			}
+			for _, a := range args {
+				v, err := strconv.ParseFloat(a, 64)
+				if err != nil {
+					return nil, h.Errf("invalid duration bucket %q: %v", a, err)
+				}
+				m.DurationBuckets = append(m.DurationBuckets, v)
+			}
+		case "status_buckets":
+			for _, a := range h.RemainingArgs() {
+				v, err := strconv.Atoi(a)
+				if err != nil {
+					return nil, h.Errf("invalid status bucket %q: %v", a, err)
+				}
+				m.StatusBuckets = append(m.StatusBuckets, v)
+			}
+		case "metrics_path":
+			if !h.NextArg() {
+				return nil, h.ArgErr()
+			}
+			m.MetricsPath = h.Val()
+		case "allowed_ips":
+			m.AllowedIPs = h.RemainingArgs()
+			if len(m.AllowedIPs) == 0 {
+				return nil, h.ArgErr()
+			}
+		default:
+			return nil, h.Errf("unknown subdirective %q", h.Val())
+		}
+	}
+
+	return &m, nil
 }
 
 var privateRanges = []string{
